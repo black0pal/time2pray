@@ -1,0 +1,101 @@
+{
+  "info": {
+    "name": "Time2Pray API",
+    "_postman_id": "time2pray-api-collection",
+    "description": "Collection for testing Time2Pray backend endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Register User",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Shah\",\n  \"email\": \"shah@example.com\",\n  \"password\": \"secret123\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api","auth","register"] }
+      }
+    },
+    {
+      "name": "Login User",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"shah@example.com\",\n  \"password\": \"secret123\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] }
+      }
+    },
+    {
+      "name": "Get Current User",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api","auth","me"] }
+      }
+    },
+    {
+      "name": "Logout User",
+      "request": {
+        "method": "POST",
+        "url": { "raw": "{{baseUrl}}/api/auth/logout", "host": ["{{baseUrl}}"], "path": ["api","auth","logout"] }
+      }
+    },
+    {
+      "name": "Add Favorite Mosque",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"mosqueId\": \"mosque-123\",\n  \"mosqueName\": \"Downtown Mosque\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/favorites", "host": ["{{baseUrl}}"], "path": ["api","favorites"] }
+      }
+    },
+    {
+      "name": "Get Favorites",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/favorites", "host": ["{{baseUrl}}"], "path": ["api","favorites"] }
+      }
+    },
+    {
+      "name": "Remove Favorite",
+      "request": {
+        "method": "DELETE",
+        "url": { "raw": "{{baseUrl}}/api/favorites/mosque-123", "host": ["{{baseUrl}}"], "path": ["api","favorites","mosque-123"] }
+      }
+    },
+    {
+      "name": "Submit Push Token",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"ExponentPushToken[xxxxxxxxxxxx]\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/push-token", "host": ["{{baseUrl}}"], "path": ["api","push-token"] }
+      }
+    },
+    {
+      "name": "Register Authority",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"mosqueId\": \"mosque-123\",\n  \"mosqueName\": \"Downtown Mosque\",\n  \"mosqueLat\": 41.8781,\n  \"mosqueLon\": -87.6298,\n  \"note\": \"Volunteer Imam\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/authorities/register", "host": ["{{baseUrl}}"], "path": ["api","authorities","register"] }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" }
+  ]
+}
