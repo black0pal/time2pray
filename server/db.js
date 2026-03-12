@@ -2,25 +2,36 @@
 import pkg from "pg";
 const { Pool } = pkg;
 
-// Make sure you set your DATABASE_URL in Railway or locally
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
 /**
- * Run a query and get all rows
- * @param {string} text SQL query
- * @param {any[]} params Query parameters
+ * Execute a query and return all rows
+ * @param {string} text - SQL query text
+ * @param {Array} params - Query parameters
+ * @returns {Promise<Array>} rows
  */
-export const query = (text, params) => pool.query(text, params);
+export async function query(text, params = []) {
+  const client = await pool.connect();
+  try {
+    const res = await client.query(text, params);
+    return res.rows;
+  } finally {
+    client.release();
+  }
+}
 
 /**
- * Run a query and return the first row (or undefined)
- * @param {string} text SQL query
- * @param {any[]} params Query parameters
+ * Execute a query and return the first row
+ * @param {string} text - SQL query text
+ * @param {Array} params - Query parameters
+ * @returns {Promise<Object|null>} row
  */
-export const queryOne = async (text, params) => {
-  const res = await pool.query(text, params);
-  return res.rows[0];
-};
+export async function queryOne(text, params = []) {
+  const rows = await query(text, params);
+  return rows[0] || null;
+}

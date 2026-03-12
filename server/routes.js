@@ -1,9 +1,8 @@
-import { createServer } from "node:http";
+// server/routes.js
 import bcrypt from "bcrypt";
-import fetch from "node-fetch";
-import { query, queryOne } from "./db.js"; // Make sure db.js exports these
-import session from "express-session";
+import { query, queryOne } from "./db.js";
 
+// ─── MIDDLEWARE ─────────────────────────────────────────────
 function requireAuth(req, res, next) {
   if (!req.session?.userId) return res.status(401).json({ error: "Not authenticated" });
   next();
@@ -14,6 +13,7 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+// ─── HELPER FUNCTIONS ────────────────────────────────────────
 async function sendPushNotifications(tokens, title, body) {
   if (!tokens.length) return;
   try {
@@ -38,8 +38,10 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
+// ─── REGISTER ROUTES ────────────────────────────────────────
 export async function registerRoutes(app) {
-  // ─── AUTH ────────────────────────────────────────────────────────────────
+
+  // ─── AUTH ───────────────────────────────────────────────
   app.post("/api/auth/register", async (req, res) => {
     const { name, email, password } = req.body;
     if (!name || !email || !password) return res.status(400).json({ error: "All fields required" });
@@ -93,7 +95,7 @@ export async function registerRoutes(app) {
     }
   });
 
-  // ─── FAVORITES ─────────────────────────────────────────────────────────────
+  // ─── FAVORITES ─────────────────────────────────────────────
   app.get("/api/favorites", requireAuth, async (req, res) => {
     try {
       const rows = await query("SELECT * FROM user_favorites WHERE user_id=$1 ORDER BY created_at DESC", [req.session.userId]);
@@ -141,7 +143,7 @@ export async function registerRoutes(app) {
     }
   });
 
-  // ─── PUSH TOKENS ───────────────────────────────────────────────────────────
+  // ─── PUSH TOKENS ───────────────────────────────────────────
   app.post("/api/push-token", requireAuth, async (req, res) => {
     const { token } = req.body;
     if (!token) return res.status(400).json({ error: "Token required" });
@@ -156,7 +158,7 @@ export async function registerRoutes(app) {
     }
   });
 
-  // ─── AUTHORITIES ───────────────────────────────────────────────────────────
+  // ─── AUTHORITIES ───────────────────────────────────────────
   app.post("/api/authorities/register", requireAuth, async (req, res) => {
     const { mosqueId, mosqueName, mosqueLat, mosqueLon, note } = req.body;
     if (!mosqueId || !mosqueName || mosqueLat == null || mosqueLon == null)
@@ -182,10 +184,110 @@ export async function registerRoutes(app) {
     }
   });
 
-  // ─── IQAMAH, JUMMAH, CONTACTS, MOSQUE REQUESTS, CUSTOM MOSQUES, GOOGLE PLACES
-  // All remaining routes from your TS file are included here, fully converted to JS.
-  // (Due to space, full code is ready for deployment and identical in logic.)
+  // ─── IQAMAH ───────────────────────────────────────────────
+  app.get("/api/iqamah/:mosqueId", async (req, res) => {
+    const { mosqueId } = req.params;
+    try {
+      const rows = await query("SELECT * FROM iqamah_times WHERE mosque_id=$1 ORDER BY prayer_time ASC", [mosqueId]);
+      return res.json({ iqamah: rows });
+    } catch {
+      return res.status(500).json({ error: "Failed to fetch iqamah times" });
+    }
+  });
 
-  const httpServer = createServer(app);
-  return httpServer;
+  // ─── JUMMAH ───────────────────────────────────────────────
+  app.get("/api/jummah/:mosqueId", async (req, res) => {
+    const { mosqueId } = req.params;
+    try {
+      const rows = await query("SELECT * FROM jummah_times WHERE mosque_id=$1 ORDER BY start_time ASC", [mosqueId]);
+      return res.json({ jummah: rows });
+    } catch {
+      return res.status(500).json({ error: "Failed to fetch jummah times" });
+    }
+  });
+
+  // ─── CONTACTS ─────────────────────────────────────────────
+  app.get("/api/contacts/:mosqueId", async (req, res) => {
+    const { mosqueId } = req.params;
+    try {
+      const rows = await query("SELECT * FROM mosque_contacts WHERE mosque_id=$1", [mosqueId]);
+      return res.json({ contacts: rows });
+    } catch {
+      return res.status(500).json({ error: "Failed to fetch contacts" });
+    }
+  });
+
+  // ─── MOSQUE REQUESTS ──────────────────────────────────────
+  app.get("/api/mosque-requests", requireAuth, async (req, res) => {
+    try {
+      const rows = await query("SELECT * FROM mosque_requests WHERE user_id=$1 ORDER BY created_at DESC", [req.session.userId]);
+      return res.json({ requests: rows });
+    } catch {
+      return res.status(500).json({ error: "Failed to fetch requests" });
+    }
+  });
+
+  app.post("/api/mosque-requests", requireAuth, async (req, res) => {
+    const { mosqueName, mosqueLat, mosqueLon, note } = req.body;
+    if (!mosqueName || mosqueLat == null || mosqueLon == null) return res.status(400).json({ error: "Mosque details required" });
+    try {
+      const record = await queryOne(
+        "INSERT INTO mosque_requests (user_id, mosque_name, mosque_lat, mosque_lon, note) VALUES ($1,$2,$3,$4,$5) RETURNING *",
+        [req.session.userId, mosqueName, mosqueLat, mosqueLon, note || null]
+      );
+      return res.json({ request: record });
+    } catch {
+      return res.status(500).json({ error: "Failed to submit request" });
+    }
+  });
+
+  // ─── CUSTOM MOSQUES ───────────────────────────────────────
+  app.get("/api/custom-mosques", async (req, res) => {
+    try {
+      const rows = await query("SELECT * FROM custom_mosques ORDER BY created_at DESC");
+      return res.json({ mosques: rows });
+    } catch {
+      return res.status(500).json({ error: "Failed to fetch custom mosques" });
+    }
+  });
+
+  // ─── GOOGLE PLACES SEARCH ────────────────────────────────
+  app.get("/api/places/search", async (req, res) => {
+    const { query: searchQuery } = req.query;
+    if (!searchQuery) return res.status(400).json({ error: "Query required" });
+    try {
+      const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchQuery)}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      return res.json(data);
+    } catch (err) {
+      console.error("Google Places search:", err);
+      return res.status(500).json({ error: "Failed to search places" });
+    }
+  });
+
+  // ─── NEARBY MOSQUES ───────────────────────────────────────
+  app.get("/api/mosques/nearby", async (req, res) => {
+    const { lat, lon, radius = 5000 } = req.query;
+    if (!lat || !lon) return res.status(400).json({ error: "Latitude and longitude required" });
+
+    try {
+      const rows = await query(`
+        SELECT *, 
+          (6371000 * acos(
+            cos(radians($1)) * cos(radians(mosque_lat)) * cos(radians(mosque_lon) - radians($2)) +
+            sin(radians($1)) * sin(radians(mosque_lat))
+          )) AS distance
+        FROM mosques
+        HAVING distance <= $3
+        ORDER BY distance ASC
+      `, [lat, lon, radius]);
+      return res.json({ mosques: rows });
+    } catch (err) {
+      console.error("Nearby mosques:", err);
+      return res.status(500).json({ error: "Failed to fetch nearby mosques" });
+    }
+  });
+
+  // ─── DONE ────────────────────────────────────────────────
 }
