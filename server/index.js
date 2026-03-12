@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import pkg from "pg";
+import { registerRoutes } from "./routes.js";
 
 const { Pool } = pkg;
 
