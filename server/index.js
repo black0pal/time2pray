@@ -10,8 +10,6 @@ const app = express();
 --------------------------------
 CORS
 --------------------------------
-Allow frontend / mobile app
---------------------------------
 */
 
 app.use(
@@ -34,8 +32,6 @@ app.use(express.urlencoded({ extended: true }));
 --------------------------------
 Sessions
 --------------------------------
-Used for login authentication
---------------------------------
 */
 
 app.use(
@@ -45,17 +41,17 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false, // Railway runs behind proxy
+      secure: false,
       httpOnly: true,
       sameSite: "lax",
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      maxAge: 1000 * 60 * 60 * 24 * 7,
     },
   })
 );
 
 /*
 --------------------------------
-Health / root routes
+Health Routes
 --------------------------------
 */
 
@@ -69,21 +65,16 @@ app.get("/health", (req, res) => {
 
 /*
 --------------------------------
-Register all API routes
+Register API Routes
 --------------------------------
 */
 
-registerRoutes(app)
-  .then(() => {
-    console.log("Routes registered");
-  })
-  .catch((err) => {
-    console.error("Route registration failed", err);
-  });
+registerRoutes(app);
+console.log("Routes registered");
 
 /*
 --------------------------------
-Start server
+Start Server
 --------------------------------
 */
 
