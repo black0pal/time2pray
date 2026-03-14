@@ -163,10 +163,12 @@ GOOGLE MOSQUE SEARCH
 */
 
 app.get("/api/mosques/nearby", async (req, res) => {
-
   const { lat, lon } = req.query;
 
   try {
+    if (!lat || !lon) {
+      return res.status(400).json({ error: "Latitude and longitude required" });
+    }
 
     const url =
       `https://maps.googleapis.com/maps/api/place/nearbysearch/json` +
@@ -178,13 +180,29 @@ app.get("/api/mosques/nearby", async (req, res) => {
     const response = await fetch(url);
     const data = await response.json();
 
-    res.json(data.results);
+    console.log("Google Places status:", data.status);
+
+    if (data.status !== "OK") {
+      return res.status(500).json({
+        error: "Google Places API error",
+        status: data.status
+      });
+    }
+
+    const mosques = data.results.map(place => ({
+      id: place.place_id,
+      name: place.name,
+      latitude: place.geometry.location.lat,
+      longitude: place.geometry.location.lng,
+      address: place.vicinity
+    }));
+
+    res.json(mosques);
 
   } catch (err) {
     console.error("Nearby mosques error:", err);
     res.status(500).json({ error: "Failed to fetch nearby mosques" });
   }
-
 });
 
 
